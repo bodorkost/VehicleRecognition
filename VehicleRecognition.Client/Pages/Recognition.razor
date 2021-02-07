@@ -1,0 +1,81 @@
+﻿@page "/recognition"
+
+@using VehicleRecognition.Shared.DTOs
+@using VehicleRecognition.Client.Services
+@inject IRecognizeService _recognizeService
+
+<div class="row">
+    <h1>Vehicle recognition</h1>
+</div>
+
+<div class="row">
+    @if (!string.IsNullOrEmpty(statusResponse?.ErrorMessage))
+    {
+        <text>
+            <div class="col-12 alert alert-danger" role="alert">
+                <strong>PREDICTION ERROR!</strong>
+                <hr>
+                <p class="mb-0">
+                    @statusResponse.ErrorMessage
+                </p>
+            </div>
+        </text>
+    }
+    @if (!string.IsNullOrEmpty(predictionResult?.Output?.Prediction))
+    {
+        <text>
+            <div class="col-12 alert alert-success" role="alert">
+                <strong>PREDICTION SUCCEEDED!</strong>
+                <hr>
+                <p class="mb-0">
+                    @predictionResult.Output.Prediction
+                </p>
+            </div>
+        </text>
+    }
+</div>
+<div class="row">
+    @if (!string.IsNullOrEmpty(Url))
+    {
+        <text>
+            <h3>Predictable image:</h3>
+            <div class="col-12" style="text-align:center">
+                <img src=@Url alt="Predictable image" style="max-height:400px" />
+            </div>
+        </text>
+    }
+</div>
+
+<form>
+    <div class="form-group">
+        <label for="url">Url</label>
+        <input type="text" id="url" placeholder="Paste file url" class="form-control" value="@Url" @onchange="@(( args ) => Url = args.Value.ToString())" />
+    </div>
+    <input type="button" class="btn btn-primary" @onclick="Predict" value="Predict" />
+</form>
+
+
+@code
+{
+    public string Url { get; set; } = null;
+    private StatusResponse statusResponse;
+    private PredictionResult predictionResult;
+
+    private async Task Predict()
+    {
+        Clear();
+
+        statusResponse = await _recognizeService.Predict(Url);
+        if (string.IsNullOrEmpty(statusResponse.ErrorMessage) && !string.IsNullOrEmpty(statusResponse.StatusQueryGetUri))
+        {
+            predictionResult = await _recognizeService.GetPredictionResult(statusResponse.StatusQueryGetUri);
+            statusResponse = null;
+        }
+    }
+
+    private void Clear()
+    {
+        statusResponse = null;
+        predictionResult = null;
+    }
+}
